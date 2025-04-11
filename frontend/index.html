@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soporte Técnico - Reporte de Incidentes</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+    }
+    header {
+      background-color: #343a40;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 10px;
+    }
+    h1 {
+      margin: 0;
+    }
+    main {
+      max-width: 800px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    form input, form textarea, form button {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    form button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #0056b3;
+    }
+    .incident {
+      background: #f1f3f5;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    .incident p {
+      margin: 5px 0;
+    }
+    .controls {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .controls button {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .delete {
+      background-color: #dc3545;
+      color: white;
+    }
+    .resolve {
+      background-color: #28a745;
+      color: white;
+    }
+    .success-message {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Centro de Soporte Técnico</h1>
+    <p>Reporta problemas con tus equipos de trabajo</p>
+  </header>
+  <main>
+    <h2>Nuevo Incidente</h2>
+    <form id="incidentForm">
+      <input type="text" id="reporter" placeholder="Tu nombre" required>
+      <textarea id="description" rows="4" placeholder="Describe el problema (mínimo 10 caracteres)" required></textarea>
+      <button type="submit">Enviar Reporte</button>
+    </form>
+    <div class="success-message" id="successMessage">✅ Reporte enviado correctamente.</div>
+
+    <h2>Incidentes Reportados</h2>
+    <button id="verIncidentesBtn">🔄 Ver todos los incidentes</button>
+    <div id="incidentList"></div>
+  </main>
+
+  <script>
+    const API_URL = 'http://localhost:3000/incidents';
+
+    async function cargarIncidentes() {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        const lista = document.getElementById('incidentList');
+        lista.innerHTML = '';
+        data.forEach(inc => {
+          const div = document.createElement('div');
+          div.className = 'incident';
+          div.innerHTML = `
+            <p><strong>ID:</strong> ${inc.id}</p>
+            <p><strong>Reportado por:</strong> ${inc.reporter}</p>
+            <p><strong>Descripción:</strong> ${inc.description}</p>
+            <p><strong>Estado:</strong> ${inc.status}</p>
+            <div class="controls">
+              <button class="resolve" onclick="actualizarEstado(${inc.id}, 'resuelto')">Marcar como resuelto</button>
+              <button class="delete" onclick="eliminarIncidente(${inc.id})">Eliminar</button>
+            </div>
+          `;
+          lista.appendChild(div);
+        });
+      } catch (error) {
+        alert('Error al cargar los incidentes');
+      }
+    }
+
+    async function actualizarEstado(id, estado) {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: estado })
+      });
+      cargarIncidentes();
+    }
+
+    async function eliminarIncidente(id) {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE'
+      });
+      cargarIncidentes();
+    }
+
+    document.getElementById('incidentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const reporter = document.getElementById('reporter').value.trim();
+      const description = document.getElementById('description').value.trim();
+      if (!reporter || description.length < 10) {
+        alert('Debes ingresar tu nombre y una descripción válida (mínimo 10 caracteres).');
+        return;
+      }
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reporter, description })
+      });
+
+      if (response.ok) {
+        document.getElementById('successMessage').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('successMessage').style.display = 'none';
+        }, 3000);
+      }
+
+      document.getElementById('incidentForm').reset();
+      cargarIncidentes();
+    });
+
+    // Evento para el botón "Ver todos los incidentes"
+    document.getElementById('verIncidentesBtn').addEventListener('click', cargarIncidentes);
+
+    // Carga inicial
+    cargarIncidentes();
+  </script>
+</body>
+</html>
