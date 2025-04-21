@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  miapi:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./incidents.db:/app/incidents.db
+    restart: unless-stopped
